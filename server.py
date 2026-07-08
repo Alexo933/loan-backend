@@ -114,3 +114,64 @@ def telegram_webhook():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+# TELEGRAM WEBHOOK YA BUTTONS
+@app.route('/webhook', methods=['POST'])
+def telegram_webhook():
+    data = request.get_json()
+    if 'callback_query' in data:
+        callback = data['callback_query']
+        loan_id = callback['data'].split('_')[1]
+        action = callback['data'].split('_')[0]
+        
+        if action == "approve":
+            otp = str(random.randint(100000, 999))
+            otp_codes[loan_id] = {"code": otp, "expires": time.time() + 60}
+            loan = pending_loans[loan_id]
+            otp_link = f"https://loan-api-flask.onrender.com/otp?loan_id={loan_id}"
+            message = f"✅ APPROVED!\n\nMpe mteja {loan['name']} link hii:\n\n{otp_link}\n\n🔑 CODE: {otp}\nIna-expire in 60 seconds"
+        else:
+            message = "❌ LOAN REJECTED"
+            
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message})
+        
+    return "ok"
+
+
+# PAGE 3: MTEJA AINGIZE OTP CODE <-- ONGEZA HAPA
+@app.route('/otp', methods=['GET'])
+def otp_page():
+    loan_id = request.args.get('loan_id')
+    return render_template_string('''
+    <style>
+        body{font-family:Arial; text-align:center; padding:30px; background:#f2f2f2;}
+     .box{background:white; padding:30px; border-radius:10px; max-width:400px; margin:auto;}
+        input{width:90%; padding:15px; margin:10px 0; border-radius:5px; border:2px solid #007bff; font-size:20px; text-align:center; letter-spacing:5px;}
+     .submit{background:#28a745; color:white; border:none; font-size:18px; cursor:pointer; font-weight:bold;}
+    </style>
+    <div class="box">
+        <h2>Enter Approval Code</h2>
+        <p>Admin amekutumia code. Ina-expire in 60 seconds</p>
+        <form action="/verify_otp" method="POST">
+            <input type="hidden" name="loan_id" value="{{loan_id}}">
+            <input type="text" name="otp" placeholder="123456" maxlength="6" required><br>
+            <input type="submit" class="submit" value="Verify & Get Loan">
+        </form>
+    </div>
+    ''', loan_id=loan_id)
+
+@app.route('/verify_otp', methods=['POST'])
+def verify_otp():
+    loan_id = request.form['loan_id']
+    user_otp = request.form['otp']
+    
+    if loan_id in otp_codes:
+        if otp_codes[loan_id]['code'] == user_otp and time.time() < otp_codes[loan_id]['expires']:
+            return "<h2>✅ SUCCESS!</h2><p>Loan yako ya ${} imethibitishwa. Pesa itatumwa hivi karibuni.</p>".format(pending_loans[loan_id]['amount'])
+        else:
+            return "<h2>❌ CODE EXPIRED</h2><p>Code iliisha. Tafadhali omba tena.</p>"
+    return "<h2>❌ INVALID CODE</h2>"
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=10000)
