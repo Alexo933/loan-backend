@@ -1,1 +1,2 @@
-web: gunicorn server:app
+web: node server.js
+worker: node telegramBot.js
