@@ -1,1 +1,168 @@
-{"name":"toa-makuta","version":"1.0.0","main":"index.js","scripts":{"start":"node index.js"},"dependencies":{"express":"^4.18.2","body-parser":"^1.20.2","axios":"^1.6.0"}}
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HaloPesa - Pata Mkopo Wako Haraka</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:Arial, sans-serif}
+  body{background:#f1f1f1;padding-bottom:30px}
+  header{background:#d92d00;color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  header .logo{font-size:22px;font-weight:800;display:flex;align-items:center;gap:6px}
+  header .logo span{color:#ffcc00}
+  header a{color:white;text-decoration:none;font-size:14px}
+  .card{background:white;margin:16px;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
+  h1{font-size:26px;text-align:center}
+  .sub{text-align:center;color:#777;font-size:14px;margin:6px 0 20px}
+  .row{display:flex;justify-content:space-between;font-size:14px;margin:14px 0 6px}
+  .row b{color:#e65100}
+  input[type=range]{width:100%;accent-color:#ff6a00}
+  .small{font-size:12px;color:#888;display:flex;justify-content:space-between}
+  .pay-box{background:#fff7f0;border:1px solid #ffe0c7;border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+  .pay-box b{font-size:22px;color:#e65100}
+  .btn{background:linear-gradient(90deg,#ff6a00,#ff8a00);color:white;border:none;width:100%;padding:15px;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;margin-top:18px}
+  .btn-grey{background:#e0e0e0;color:#555}
+  .features{display:flex;justify-content:space-between;text-align:center;margin-top:20px}
+  .features div{flex:1}
+  .features .icon{font-size:26px}
+  .features b{font-size:13px;display:block;margin-top:4px}
+  .features span{font-size:11px;color:#888}
+  .progress{display:flex;gap:6px;margin:14px 0 20px}
+  .progress div{height:6px;flex:1;background:#e0e0e0;border-radius:10px}
+  .progress div.active{background:linear-gradient(90deg,#ff6a00,#ffb300)}
+  label{display:block;font-size:14px;margin:14px 0 6px;font-weight:600}
+  input,select,textarea{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;font-size:15px;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:#ff6a00}
+  .flex2{display:flex;gap:10px}
+  .flex2 button{flex:1}
+  .phone{display:flex;gap:0}
+  .phone span{background:#f1f1f1;border:1px solid #ddd;border-right:0;padding:13px;border-radius:10px 0 0 10px}
+  .phone input{border-radius:0 10px 10px 0}
+  .hint{font-size:12px;color:#888;margin-top:4px}
+  .summary{background:#fff9f0;border-left:4px solid #ff6a00;border-radius:10px;padding:14px;margin-top:18px}
+  .summary h3{font-size:16px;margin-bottom:10px}
+  .summary .srow{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:#555}
+  .summary .srow b{color:#222}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div><a href="#" onclick="showHome()">← Rudi</a></div>
+  <div class="logo">🌄 Halo<span>Pesa</span></div>
+  <div>☰</div>
+</header>
+
+<div id="home">
+  <div class="card">
+    <h1>Pata Mkopo Wako Haraka</h1>
+    <p class="sub">Idhini ya haraka • Riba nafuu • Muda rahisi</p>
+    <b>Kikokotoo cha Mkopo</b>
+    <div class="row"><span>Kiasi cha Mkopo</span><b id="amtLabel">TSh 10,000</b></div>
+    <input type="range" id="amount" min="10000" max="100000000" step="10000" value="10000">
+    <div class="small"><span>TSh 10K</span><span>TSh 100M</span></div>
+    <div class="row"><span>Muda wa Mkopo</span><b id="monthsLabel">miezi 6</b></div>
+    <input type="range" id="months" min="6" max="60" step="1" value="6">
+    <div class="small"><span>miezi 6</span><span>miezi 60</span></div>
+    <div class="pay-box"><span>Malipo ya Kila Mwezi</span><b id="monthly">TSh 1,790</b></div>
+    <button class="btn" onclick="showStep(1)">OMBA SASA</button>
+    <div class="features">
+      <div><div class="icon">⚡</div><b>Idhini ya Haraka</b><span>Ndani ya masaa 24</span></div>
+      <div><div class="icon">💲</div><b>Riba Nafuu</b><span>Kuanzia 25%</span></div>
+      <div><div class="icon">🔒</div><b>Salama</b><span>Kiwango cha benki</span></div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:12px;color:#888;padding:0 20px">Tunaiheshimu faragha yako. Hatushiriki data yako na mtu mwingine bila idhini yako.</p>
+</div>
+
+<div id="formPage" class="hidden">
+  <div class="card">
+    <h1>Maombi ya Mkopo</h1>
+    <p class="sub" id="stepText">Hatua 1 ya 3</p>
+    <div class="progress"><div id="p1" class="active"></div><div id="p2"></div><div id="p3"></div></div>
+
+    <div id="step1">
+      <label>Aina ya Mkopo</label>
+      <select id="loanType"><option>Mkopo wa Binafsi</option><option>Mkopo wa Biashara</option><option>Mkopo wa Elimu</option><option>Mkopo wa Kilimo</option></select>
+      <label>Kiasi cha Mkopo (TSh)</label>
+      <input type="number" id="fAmount" placeholder="Weka kiasi" value="500000">
+      <label>Muda wa Mkopo</label>
+      <select id="fMonths"><option value="6">Miezi 6</option><option value="12">Miezi 12</option><option value="24">Miezi 24</option><option value="36" selected>Miezi 36</option><option value="48">Miezi 48</option><option value="60">Miezi 60</option></select>
+      <label>Madhumuni ya Mkopo</label>
+      <textarea id="purpose" rows="3" placeholder="Elezea madhumuni ya mkopo wako..."></textarea>
+      <button class="btn" onclick="showStep(2)">HATUA INAYOFUATA</button>
+    </div>
+
+    <div id="step2" class="hidden">
+      <label>Jina la Kwanza</label><input id="firstName" placeholder="Jina la kwanza">
+      <label>Jina la Ukoo</label><input id="lastName" placeholder="Jina la ukoo">
+      <label>Nambari ya Simu</label>
+      <div class="phone"><span>+255</span><input id="phone" placeholder="712345678 au 0712345678"></div>
+      <p class="hint">Weka nambari 9 au anza na 0 (mfano, 0712345678 → inabadilika hadi 712345678)</p>
+      <div class="flex2"><button class="btn btn-grey" onclick="showStep(1)">ILIYOTANGULIA</button><button class="btn" onclick="showStep(3)">HATUA INAYOFUATA</button></div>
+    </div>
+
+    <div id="step3" class="hidden">
+      <label>Hali ya Ajira</label>
+      <select id="employment"><option>Mwajiriwa</option><option>Mjiajiri / Biashara</option><option>Mkulima</option><option>Mwanafunzi</option></select>
+      <label>Mapato ya Mwaka (TSh)</label><input id="income" placeholder="Weka mapato ya mwaka">
+      <div class="summary">
+        <h3>Muhtasari wa Maombi</h3>
+        <div class="srow"><span>Kiasi cha Mkopo:</span><b id="sumAmt">TSh 500,000</b></div>
+        <div class="srow"><span>Muda wa Mkopo:</span><b id="sumMonths">Miezi 36</b></div>
+        <div class="srow"><span>Madhumuni:</span><b id="sumPurpose">-</b></div>
+        <div class="srow"><span>Mwombaji:</span><b id="sumName">-</b></div>
+      </div>
+      <div class="flex2"><button class="btn btn-grey" onclick="showStep(2)">ILIYOTANGULIA</button><button class="btn" onclick="submitForm()">WASILISHA MAOMBI</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="success" class="hidden">
+  <div class="card" style="text-align:center">
+    <div style="font-size:50px">✅</div>
+    <h1>Asante!</h1>
+    <p class="sub">Maombi yako yamepokelewa. Tutakuwasiliana nawe ndani ya masaa 24.</p>
+    <button class="btn" onclick="location.reload()">OMBA TENA</button>
+  </div>
+</div>
+
+<script>
+const amt=document.getElementById('amount'), mon=document.getElementById('months');
+function fmt(n){return 'TSh '+Number(n).toLocaleString('en-US')}
+function calc(){
+  let P=Number(amt.value), n=Number(mon.value), r=0.02;
+  let pmt = P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+  document.getElementById('amtLabel').innerText=fmt(P);
+  document.getElementById('monthsLabel').innerText='miezi '+n;
+  document.getElementById('monthly').innerText=fmt(Math.round(pmt));
+  document.getElementById('fAmount').value=P;
+}
+amt.oninput=calc; mon.oninput=calc; calc();
+function showHome(){document.getElementById('home').classList.remove('hidden');document.getElementById('formPage').classList.add('hidden')}
+function showStep(n){
+  document.getElementById('home').classList.add('hidden');
+  document.getElementById('formPage').classList.remove('hidden');
+  [1,2,3].forEach(i=>{
+    document.getElementById('step'+i).classList.toggle('hidden', i!==n);
+    document.getElementById('p'+i).classList.toggle('active', i<=n);
+  });
+  document.getElementById('stepText').innerText='Hatua '+n+' ya 3';
+  if(n===3){
+    document.getElementById('sumAmt').innerText=fmt(document.getElementById('fAmount').value||0);
+    document.getElementById('sumMonths').innerText='Miezi '+document.getElementById('fMonths').value;
+    document.getElementById('sumPurpose').innerText=document.getElementById('purpose').value||'-';
+    document.getElementById('sumName').innerText=(document.getElementById('firstName').value+' '+document.getElementById('lastName').value).trim()||'-';
+  }
+}
+function submitForm(){
+  let phone=document.getElementById('phone').value.replace(/^0/,'').trim();
+  if(!document.getElementById('firstName').value || !phone){alert('Tafadhali jaza jina na nambari ya simu');showStep(2);return}
+  console.log({jina:document.getElementById('firstName').value, simu:'+255'+phone});
+  document.getElementById('formPage').classList.add('hidden');
+  document.getElementById('success').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
