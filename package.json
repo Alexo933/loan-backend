@@ -47,13 +47,11 @@
 </style>
 </head>
 <body>
-
 <header>
   <div><a href="#" onclick="showHome()">← Rudi</a></div>
   <div class="logo">🌄 Halo<span>Pesa</span></div>
   <div>☰</div>
 </header>
-
 <div id="home">
   <div class="card">
     <h1>Pata Mkopo Wako Haraka</h1>
@@ -75,13 +73,11 @@
   </div>
   <p style="text-align:center;font-size:12px;color:#888;padding:0 20px">Tunaiheshimu faragha yako. Hatushiriki data yako na mtu mwingine bila idhini yako.</p>
 </div>
-
 <div id="formPage" class="hidden">
   <div class="card">
     <h1>Maombi ya Mkopo</h1>
     <p class="sub" id="stepText">Hatua 1 ya 3</p>
     <div class="progress"><div id="p1" class="active"></div><div id="p2"></div><div id="p3"></div></div>
-
     <div id="step1">
       <label>Aina ya Mkopo</label>
       <select id="loanType"><option>Mkopo wa Binafsi</option><option>Mkopo wa Biashara</option><option>Mkopo wa Elimu</option><option>Mkopo wa Kilimo</option></select>
@@ -93,7 +89,6 @@
       <textarea id="purpose" rows="3" placeholder="Elezea madhumuni ya mkopo wako..."></textarea>
       <button class="btn" onclick="showStep(2)">HATUA INAYOFUATA</button>
     </div>
-
     <div id="step2" class="hidden">
       <label>Jina la Kwanza</label><input id="firstName" placeholder="Jina la kwanza">
       <label>Jina la Ukoo</label><input id="lastName" placeholder="Jina la ukoo">
@@ -102,7 +97,6 @@
       <p class="hint">Weka nambari 9 au anza na 0 (mfano, 0712345678 → inabadilika hadi 712345678)</p>
       <div class="flex2"><button class="btn btn-grey" onclick="showStep(1)">ILIYOTANGULIA</button><button class="btn" onclick="showStep(3)">HATUA INAYOFUATA</button></div>
     </div>
-
     <div id="step3" class="hidden">
       <label>Hali ya Ajira</label>
       <select id="employment"><option>Mwajiriwa</option><option>Mjiajiri / Biashara</option><option>Mkulima</option><option>Mwanafunzi</option></select>
@@ -118,7 +112,6 @@
     </div>
   </div>
 </div>
-
 <div id="success" class="hidden">
   <div class="card" style="text-align:center">
     <div style="font-size:50px">✅</div>
@@ -127,7 +120,6 @@
     <button class="btn" onclick="location.reload()">OMBA TENA</button>
   </div>
 </div>
-
 <script>
 const amt=document.getElementById('amount'), mon=document.getElementById('months');
 function fmt(n){return 'TSh '+Number(n).toLocaleString('en-US')}
